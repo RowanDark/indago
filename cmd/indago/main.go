@@ -230,6 +230,7 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	reg.Register(social.NewWhatsMyName())
 	reg.Register(network.NewCrtsh())
 	reg.Register(network.NewAbuseIPDB())
+	reg.Register(network.NewWayback())
 	reg.Register(geo.NewIPAPI())
 }
 

@@ -1,5 +1,5 @@
-// Package identity implements sources for the identity module.
-// Identity sources accept name, email, and phone inputs.
+// Package breach implements sources for the breach module.
+// Breach sources query credential leak databases and paste archives.
 package breach
 
 import (
