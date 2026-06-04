@@ -1,0 +1,22 @@
+# Binary
+/indago
+/indago.exe
+
+# Build artifacts
+/dist/
+*.out
+
+# Config (may contain API keys — never commit)
+~/.config/indago/
+config.json
+config.yaml
+*.local.json
+
+# Go
+vendor/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
