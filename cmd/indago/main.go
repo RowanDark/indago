@@ -17,6 +17,7 @@ import (
 	"github.com/RowanDark/indago/internal/pivot"
 	"github.com/RowanDark/indago/modules/breach"
 	"github.com/RowanDark/indago/modules/geo"
+	"github.com/RowanDark/indago/modules/identity"
 	"github.com/RowanDark/indago/modules/network"
 	"github.com/RowanDark/indago/modules/social"
 	"github.com/RowanDark/indago/pkg/module"
@@ -305,4 +306,6 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	reg.Register(network.NewAbuseIPDB())
 	reg.Register(network.NewWayback())
 	reg.Register(geo.NewIPAPI())
+	hunterKey, _ := cfg.Key("hunter")
+	reg.Register(identity.NewHunter(hunterKey))
 }
