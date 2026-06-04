@@ -15,6 +15,7 @@ import (
 	"github.com/RowanDark/indago/internal/output"
 	"github.com/RowanDark/indago/internal/pivot"
 	"github.com/RowanDark/indago/modules/breach"
+	"github.com/RowanDark/indago/modules/geo"
 	"github.com/RowanDark/indago/modules/network"
 	"github.com/RowanDark/indago/modules/social"
 	"github.com/RowanDark/indago/pkg/module"
@@ -228,6 +229,8 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	reg.Register(social.NewHolehe())
 	reg.Register(social.NewWhatsMyName())
 	reg.Register(network.NewCrtsh())
+	reg.Register(network.NewAbuseIPDB())
+	reg.Register(geo.NewIPAPI())
 }
 
 func printProfiles(cfg *config.Config) {
