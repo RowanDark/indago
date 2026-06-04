@@ -225,6 +225,7 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	hibpKey, _ := cfg.Key("hibp")
 	reg.Register(breach.NewHIBP(hibpKey))
 	reg.Register(social.NewHolehe())
+	reg.Register(social.NewWhatsMyName())
 	reg.Register(network.NewCrtsh())
 }
 
