@@ -224,6 +224,7 @@ func resolveInput(email, name, phone, username, ip, domain string) (result.Type,
 func registerSources(reg *module.Registry, cfg *config.Config) {
 	hibpKey, _ := cfg.Key("hibp")
 	reg.Register(breach.NewHIBP(hibpKey))
+	reg.Register(breach.NewIntelX())
 	reg.Register(social.NewHolehe())
 	reg.Register(social.NewWhatsMyName())
 	reg.Register(network.NewCrtsh())
