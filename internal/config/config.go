@@ -1,39 +1,39 @@
 // Package config handles loading, validating, and accessing indago configuration.
 // Config lives at ~/.config/indago/config.yaml and is created with sane defaults
-// on first run. Stored as JSON internally for stdlib-only builds; YAML support
-// is added when gopkg.in/yaml.v3 is available.
+// on first run. Format changed from JSON to YAML in v0.1.0.
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Keys     map[string]string  `json:"keys"`
-	Profiles map[string]Profile `json:"profiles"`
-	Output   OutputConfig       `json:"output"`
-	Pivot    PivotConfig        `json:"pivot"`
-	Disabled []string           `json:"disabled"`
+	Keys     map[string]string  `yaml:"keys"`
+	Profiles map[string]Profile `yaml:"profiles"`
+	Output   OutputConfig       `yaml:"output"`
+	Pivot    PivotConfig        `yaml:"pivot"`
+	Disabled []string           `yaml:"disabled"`
 }
 
 type Profile struct {
-	Modules     []string `json:"modules"`
-	Description string   `json:"description"`
+	Modules     []string `yaml:"modules"`
+	Description string   `yaml:"description"`
 }
 
 type OutputConfig struct {
-	Format string `json:"format"`
-	Color  bool   `json:"color"`
-	Dir    string `json:"dir"`
+	Format string `yaml:"format"`
+	Color  bool   `yaml:"color"`
+	Dir    string `yaml:"dir"`
 }
 
 type PivotConfig struct {
-	Enabled     bool `json:"enabled"`
-	MaxDepth    int  `json:"max_depth"`
-	PassiveOnly bool `json:"passive_only"`
+	Enabled     bool `yaml:"enabled"`
+	MaxDepth    int  `yaml:"max_depth"`
+	PassiveOnly bool `yaml:"passive_only"`
 }
 
 func defaultConfig() *Config {
@@ -76,7 +76,7 @@ func DefaultPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("could not determine home directory: %w", err)
 	}
-	return filepath.Join(home, ".config", "indago", "config.json"), nil
+	return filepath.Join(home, ".config", "indago", "config.yaml"), nil
 }
 
 func Load(path string) (*Config, error) {
@@ -90,7 +90,7 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("reading config: %w", err)
 	}
 	cfg := defaultConfig()
-	if err := json.Unmarshal(data, cfg); err != nil {
+	if err := yaml.Unmarshal(data, cfg); err != nil {
 		return nil, fmt.Errorf("parsing config: %w", err)
 	}
 	return cfg, nil
@@ -100,7 +100,7 @@ func Save(cfg *Config, path string) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return fmt.Errorf("creating config dir: %w", err)
 	}
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (c *Config) IsDisabled(source string) bool {
 func (c *Config) GetProfile(name string) (Profile, error) {
 	p, ok := c.Profiles[name]
 	if !ok {
-		return Profile{}, fmt.Errorf("unknown profile %q — run indago -list-profiles to see options", name)
+		return Profile{}, fmt.Errorf("unknown profile %q — run indago profiles to see options", name)
 	}
 	return p, nil
 }

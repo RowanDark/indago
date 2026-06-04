@@ -27,7 +27,7 @@ Designed to complement existing recon tooling (scion, v0x, rezz) in a bug bounty
 - **Four output formats** — colorized stdout, JSON (jq-friendly), Markdown report, CSV
 - **Plugin-ready module interface** — add a new source by implementing `Source` and registering it
 - **API key aware** — key-required sources activate only when configured; free sources always run
-- **Zero dependencies in the core** — stdlib-only; add `cobra` + `yaml.v3` for enhanced CLI and YAML config
+- **Subcommand-style CLI** — powered by `cobra`; human-editable YAML config via `yaml.v3`
 
 ---
 
@@ -52,22 +52,29 @@ go install github.com/RowanDark/indago/cmd/indago@latest
 
 ```bash
 # Email investigation — hits breach, social, cert sources
-indago -email target@example.com
+indago --email target@example.com
 
 # Username enumeration only
-indago -user johndoe -profile username
+indago --user johndoe --profile username
 
 # Domain recon, JSON output piped to jq
-indago -domain example.com -format json | jq '.results[] | select(.type=="domain")'
+indago --domain example.com --format json | jq '.results[] | select(.type=="domain")'
 
 # Full investigation with Markdown report
-indago -email target@example.com -profile full -output report.md -format markdown
+indago --email target@example.com --profile full --output report.md --format markdown
 
 # Disable pivot engine for a single-hop run
-indago -email target@example.com -no-pivot
+indago --email target@example.com --no-pivot
 
 # Verbose debug output
-indago -domain example.com -verbose
+indago --domain example.com --verbose
+
+# List available profiles and sources
+indago profiles
+indago sources
+
+# Print version
+indago version
 ```
 
 ---
@@ -75,60 +82,56 @@ indago -domain example.com -verbose
 ## Usage
 
 ```
-indago [flags]
+indago [flags]               Run a scan
+indago profiles              List available scan profiles
+indago sources               List registered sources and key status
+indago version               Print version
+indago config-init           Create default config file if absent
 
 Input flags (provide exactly one):
-  -email    Email address to investigate
-  -name     Full name to investigate
-  -phone    Phone number (E.164 format: +12025551234)
-  -user     Username to enumerate
-  -ip       IP address to investigate
-  -domain   Domain name to investigate
+  --email    Email address to investigate
+  --name     Full name to investigate
+  --phone    Phone number (E.164 format: +12025551234)
+  --user     Username to enumerate
+  --ip       IP address to investigate
+  --domain   Domain name to investigate
 
 Scan control:
-  -profile      Named profile (person, domain, email, username, ip, full)
-  -modules      Comma-separated module override (e.g. breach,social)
-  -no-pivot     Disable the pivot engine
-  -pivot-depth  Override pivot depth from config (default: 2)
+  --profile      Named profile (person, domain, email, username, ip, full)
+  --modules      Comma-separated module override (e.g. breach,social)
+  --no-pivot     Disable the pivot engine
+  --pivot-depth  Override pivot depth from config (default: 2)
 
 Output:
-  -format   stdout | json | markdown | csv  (default: stdout)
-  -output   Write to file in addition to stdout
-  -no-color Disable ANSI colors
+  --format   stdout | json | markdown | csv  (default: stdout)
+  --output   Write to file in addition to stdout
+  --no-color Disable ANSI colors
 
-Meta:
-  -verbose        Debug logging to stderr
-  -config         Path to config file (default: ~/.config/indago/config.json)
-  -list-profiles  Show available profiles
-  -list-sources   Show registered sources and key status
-  -version        Print version
+Global flags:
+  --verbose  Debug logging to stderr
+  --config   Path to config file (default: ~/.config/indago/config.yaml)
 ```
 
 ---
 
 ## Configuration
 
-Config lives at `~/.config/indago/config.json` and is created with defaults on first run.
+Config lives at `~/.config/indago/config.yaml` and is created with defaults on first run. Run `indago config-init` to create it explicitly.
 
-```json
-{
-  "keys": {
-    "hibp": "",
-    "shodan": "",
-    "dehashed": "",
-    "securitytrails": ""
-  },
-  "pivot": {
-    "enabled": true,
-    "max_depth": 2,
-    "passive_only": false
-  },
-  "output": {
-    "format": "stdout",
-    "color": true
-  },
-  "disabled": []
-}
+```yaml
+keys:
+  hibp: ""
+  shodan: ""
+  dehashed: ""
+  securitytrails: ""
+pivot:
+  enabled: true
+  max_depth: 2
+  passive_only: false
+output:
+  format: stdout
+  color: true
+disabled: []
 ```
 
 Sources with empty keys are skipped. Sources with `"no"` key requirement always run.
@@ -213,14 +216,14 @@ ip        — network + geo                       (ip input)
 full      — all modules                         (any input, comprehensive, slower)
 ```
 
-Custom profiles can be added to `~/.config/indago/config.json`.
+Custom profiles can be added to `~/.config/indago/config.yaml`.
 
 ---
 
 ## Output Formats
 
 **stdout** (default) — colorized, grouped by module, designed for terminal triage  
-**json** — typed structured output, jq-friendly: `indago -email x@y.com -format json | jq '.results[]'`  
+**json** — typed structured output, jq-friendly: `indago --email x@y.com --format json | jq '.results[]'`  
 **markdown** — shareable report with result tables per module  
 **csv** — flat spreadsheet for triage: type, value, source, module, confidence, tags, timestamp  
 
