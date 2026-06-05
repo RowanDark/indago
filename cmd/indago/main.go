@@ -300,6 +300,9 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	hibpKey, _ := cfg.Key("hibp")
 	reg.Register(breach.NewHIBP(hibpKey))
 	reg.Register(breach.NewIntelX())
+	if src := breach.NewDeHashed(cfg.Keys["dehashed"]); src != nil {
+		reg.Register(src)
+	}
 	reg.Register(social.NewHolehe())
 	reg.Register(social.NewWhatsMyName())
 	reg.Register(network.NewCrtsh())
