@@ -27,6 +27,7 @@ func (i *IPAPISource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeIP}
 }
 func (i *IPAPISource) RequiresKey() bool { return false }
+func (i *IPAPISource) IsPassive() bool   { return true }
 
 type ipapiResponse struct {
 	Status      string  `json:"status"`

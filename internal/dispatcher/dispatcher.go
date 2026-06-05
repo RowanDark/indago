@@ -26,6 +26,9 @@ type ScanRequest struct {
 	Profile string
 	// Modules is an explicit module override (overrides Profile if set).
 	Modules []string
+	// PassiveOnly restricts the scan to sources that make no direct contact
+	// with target infrastructure (third-party lookups only).
+	PassiveOnly bool
 }
 
 // ScanResult aggregates all results from a complete scan run,
@@ -68,7 +71,7 @@ func (d *Dispatcher) Run(ctx context.Context, req ScanRequest) ScanResult {
 	}
 
 	// Get sources that accept this input type and belong to the target modules.
-	sources := d.sourcesForModules(req.InputType, modulesToRun)
+	sources := d.sourcesForModules(req, modulesToRun)
 	if len(sources) == 0 {
 		d.log.Warn("no sources matched", "inputType", req.InputType, "modules", modulesToRun)
 		return scan
@@ -156,25 +159,34 @@ func (d *Dispatcher) resolveModules(req ScanRequest) ([]string, error) {
 // 1. Accept the given input type
 // 2. Belong to one of the target modules (or all modules if targetModules is nil)
 // 3. Have their API key available (if required)
-func (d *Dispatcher) sourcesForModules(inputType result.Type, targetModules []string) []module.Source {
-	all := d.registry.ForInput(inputType, true)
-	if targetModules == nil {
-		return all
-	}
+// 4. Are passive when req.PassiveOnly is true
+func (d *Dispatcher) sourcesForModules(req ScanRequest, targetModules []string) []module.Source {
+	all := d.registry.ForInput(req.InputType, true)
 
-	moduleSet := make(map[string]struct{}, len(targetModules))
-	for _, m := range targetModules {
-		moduleSet[m] = struct{}{}
+	var pool []module.Source
+	if targetModules == nil {
+		pool = all
+	} else {
+		moduleSet := make(map[string]struct{}, len(targetModules))
+		for _, m := range targetModules {
+			moduleSet[m] = struct{}{}
+		}
+		for _, s := range all {
+			if _, ok := moduleSet[s.Module()]; ok {
+				pool = append(pool, s)
+			}
+		}
 	}
 
 	var filtered []module.Source
-	for _, s := range all {
-		if _, ok := moduleSet[s.Module()]; !ok {
-			continue
-		}
+	for _, s := range pool {
 		if s.RequiresKey() && !d.cfg.HasKey(s.Name()) {
 			d.log.Debug("skipping key-required source (no key configured)",
 				"source", s.Name())
+			continue
+		}
+		if req.PassiveOnly && !s.IsPassive() {
+			d.log.Debug("skipping active source (passive mode)", "source", s.Name())
 			continue
 		}
 		filtered = append(filtered, s)

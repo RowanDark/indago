@@ -77,6 +77,7 @@ func (h *HoleheSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeEmail, result.TypeUsername}
 }
 func (h *HoleheSource) RequiresKey() bool { return false }
+func (h *HoleheSource) IsPassive() bool   { return false }
 
 func (h *HoleheSource) Run(ctx context.Context, inputType module.InputType, value string) ([]result.Result, error) {
 	// For email inputs, extract the username portion for site probing.

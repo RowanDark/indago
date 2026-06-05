@@ -37,6 +37,11 @@ type Source interface {
 	// RequiresKey returns true if this source needs an API key to function.
 	// Key-required sources are skipped when no key is configured.
 	RequiresKey() bool
+
+	// IsPassive returns true if this source only queries third-party databases
+	// and makes no direct HTTP contact with target infrastructure.
+	// Active sources are skipped when PassiveOnly mode is enabled.
+	IsPassive() bool
 }
 
 // Registry holds all registered sources, indexed by their name.

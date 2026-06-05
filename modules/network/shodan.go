@@ -29,6 +29,7 @@ func (s *ShodanSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeIP}
 }
 func (s *ShodanSource) RequiresKey() bool { return true }
+func (s *ShodanSource) IsPassive() bool   { return true }
 
 type shodanHost struct {
 	IPStr       string          `json:"ip_str"`
