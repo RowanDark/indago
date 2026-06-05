@@ -4,10 +4,12 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -34,16 +36,17 @@ var (
 	flagIP       string
 	flagDomain   string
 
-	flagProfile string
-	flagModules string
-	flagFormat  string
-	flagOutput  string
+	flagProfile  string
+	flagModules  string
+	flagFormat   string
+	flagOutput   string
 	flagNoPivot  bool
 	flagPassive  bool
 	flagDepth    int
 	flagVerbose  bool
 	flagNoColor  bool
 	flagConfig   string
+	flagTimeout  time.Duration
 )
 
 var rootCmd = &cobra.Command{
@@ -59,7 +62,9 @@ Examples:
   indago --email target@example.com
   indago --user johndoe --profile username
   indago --domain example.com --format json
-  indago --email target@example.com --output report.md --format markdown`,
+  indago --email target@example.com --output report.md --format markdown
+  indago --email target@example.com --timeout 30s
+  indago --domain example.com --timeout 2m --passive`,
 	RunE: runScan,
 }
 
@@ -82,6 +87,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&flagPassive, "passive", false, "Only query passive sources (no active probing)")
 	rootCmd.Flags().IntVar(&flagDepth, "pivot-depth", 0, "Override pivot depth (0 = use config)")
 	rootCmd.Flags().BoolVar(&flagNoColor, "no-color", false, "Disable ANSI colors")
+	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 60*time.Second,
+		"Maximum duration for the entire scan (e.g. 30s, 2m)")
 
 	rootCmd.AddCommand(profilesCmd())
 	rootCmd.AddCommand(sourcesCmd())
@@ -154,7 +161,18 @@ func runScan(cmd *cobra.Command, args []string) error {
 		PassiveOnly: flagPassive || cfg.Pivot.PassiveOnly,
 	}
 
-	scanResult := engine.Run(context.Background(), req)
+	ctx := cmd.Context()
+	if flagTimeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, flagTimeout)
+		defer cancel()
+	}
+
+	scanResult := engine.Run(ctx, req)
+
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		fmt.Fprintln(os.Stderr, "warning: scan timed out — results may be incomplete")
+	}
 
 	noColor := flagNoColor || os.Getenv("NO_COLOR") != ""
 	format := output.Format(flagFormat)
