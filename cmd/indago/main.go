@@ -313,6 +313,8 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	reg.Register(network.NewWayback())
 	shodanKey, _ := cfg.Key("shodan")
 	reg.Register(network.NewShodan(shodanKey))
+	greynoiseKey, _ := cfg.Key("greynoise")
+	reg.Register(network.NewGreyNoise(greynoiseKey))
 	reg.Register(geo.NewIPAPI())
 	hunterKey, _ := cfg.Key("hunter")
 	reg.Register(identity.NewHunter(hunterKey))
