@@ -27,6 +27,7 @@ func (a *AbuseIPDBSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeIP}
 }
 func (a *AbuseIPDBSource) RequiresKey() bool { return false }
+func (a *AbuseIPDBSource) IsPassive() bool   { return true }
 
 type abuseIPDBResponse struct {
 	IPAddress            string `json:"ipAddress"`

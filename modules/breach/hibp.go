@@ -34,6 +34,7 @@ func (h *HIBPSource) Name() string                  { return "hibp" }
 func (h *HIBPSource) Module() string                { return "breach" }
 func (h *HIBPSource) Accepts() []module.InputType   { return []module.InputType{result.TypeEmail} }
 func (h *HIBPSource) RequiresKey() bool             { return false }
+func (h *HIBPSource) IsPassive() bool               { return true }
 
 // hibpBreach represents a single breach record from the HIBP API.
 type hibpBreach struct {

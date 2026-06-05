@@ -55,6 +55,7 @@ func (w *WhatsMyNameSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeUsername}
 }
 func (w *WhatsMyNameSource) RequiresKey() bool { return false }
+func (w *WhatsMyNameSource) IsPassive() bool   { return false }
 
 func (w *WhatsMyNameSource) Run(ctx context.Context, inputType module.InputType, value string) ([]result.Result, error) {
 	username := value

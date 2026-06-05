@@ -67,10 +67,11 @@ func (e *Engine) Run(ctx context.Context, req dispatcher.ScanRequest) dispatcher
 			seen[seedKey(target.inputType, target.value)] = struct{}{}
 
 			pivotReq := dispatcher.ScanRequest{
-				InputType: target.inputType,
-				Value:     target.value,
-				Profile:   req.Profile,
-				Modules:   req.Modules,
+				InputType:   target.inputType,
+				Value:       target.value,
+				Profile:     req.Profile,
+				Modules:     req.Modules,
+				PassiveOnly: req.PassiveOnly,
 			}
 
 			pivotResult := e.dispatcher.Run(ctx, pivotReq)

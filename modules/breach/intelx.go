@@ -27,6 +27,7 @@ func NewIntelX() *IntelXSource {
 func (ix *IntelXSource) Name() string      { return "intelx" }
 func (ix *IntelXSource) Module() string    { return "breach" }
 func (ix *IntelXSource) RequiresKey() bool { return false }
+func (ix *IntelXSource) IsPassive() bool   { return true }
 func (ix *IntelXSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeEmail, result.TypeDomain}
 }

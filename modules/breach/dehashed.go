@@ -44,6 +44,7 @@ func (d *DeHashedSource) Accepts() []module.InputType {
 	}
 }
 func (d *DeHashedSource) RequiresKey() bool { return true }
+func (d *DeHashedSource) IsPassive() bool   { return true }
 
 type dehashedEntry struct {
 	ID             string `json:"id"`

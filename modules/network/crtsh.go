@@ -35,6 +35,7 @@ func (c *CrtshSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeDomain, result.TypeEmail}
 }
 func (c *CrtshSource) RequiresKey() bool { return false }
+func (c *CrtshSource) IsPassive() bool   { return true }
 
 // crtshEntry represents a single row from the crt.sh JSON API.
 type crtshEntry struct {

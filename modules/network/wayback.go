@@ -28,6 +28,7 @@ func (w *WaybackSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeDomain}
 }
 func (w *WaybackSource) RequiresKey() bool { return false }
+func (w *WaybackSource) IsPassive() bool   { return true }
 
 func (w *WaybackSource) Run(ctx context.Context, inputType module.InputType, value string) ([]result.Result, error) {
 	params := url.Values{}

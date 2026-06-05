@@ -30,6 +30,7 @@ func (h *HunterSource) Accepts() []module.InputType {
 	return []module.InputType{result.TypeDomain, result.TypeEmail}
 }
 func (h *HunterSource) RequiresKey() bool { return true }
+func (h *HunterSource) IsPassive() bool   { return true }
 
 type hunterDomainResponse struct {
 	Data struct {

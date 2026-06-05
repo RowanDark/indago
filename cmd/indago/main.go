@@ -38,11 +38,12 @@ var (
 	flagModules string
 	flagFormat  string
 	flagOutput  string
-	flagNoPivot bool
-	flagDepth   int
-	flagVerbose bool
-	flagNoColor bool
-	flagConfig  string
+	flagNoPivot  bool
+	flagPassive  bool
+	flagDepth    int
+	flagVerbose  bool
+	flagNoColor  bool
+	flagConfig   string
 )
 
 var rootCmd = &cobra.Command{
@@ -78,6 +79,7 @@ func init() {
 	rootCmd.Flags().StringVar(&flagFormat, "format", "stdout", "Output format: stdout, json, markdown, csv")
 	rootCmd.Flags().StringVar(&flagOutput, "output", "", "Write output to file")
 	rootCmd.Flags().BoolVar(&flagNoPivot, "no-pivot", false, "Disable pivot engine")
+	rootCmd.Flags().BoolVar(&flagPassive, "passive", false, "Only query passive sources (no active probing)")
 	rootCmd.Flags().IntVar(&flagDepth, "pivot-depth", 0, "Override pivot depth (0 = use config)")
 	rootCmd.Flags().BoolVar(&flagNoColor, "no-color", false, "Disable ANSI colors")
 
@@ -145,10 +147,11 @@ func runScan(cmd *cobra.Command, args []string) error {
 	engine := pivot.New(disp, cfg, log)
 
 	req := dispatcher.ScanRequest{
-		InputType: inputType,
-		Value:     value,
-		Profile:   flagProfile,
-		Modules:   modules,
+		InputType:   inputType,
+		Value:       value,
+		Profile:     flagProfile,
+		Modules:     modules,
+		PassiveOnly: flagPassive || cfg.Pivot.PassiveOnly,
 	}
 
 	scanResult := engine.Run(context.Background(), req)
