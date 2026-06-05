@@ -318,4 +318,5 @@ func registerSources(reg *module.Registry, cfg *config.Config) {
 	reg.Register(geo.NewIPAPI())
 	hunterKey, _ := cfg.Key("hunter")
 	reg.Register(identity.NewHunter(hunterKey))
+	reg.Register(identity.NewWHOIS())
 }
