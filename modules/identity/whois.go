@@ -37,7 +37,7 @@ func (w *WHOISSource) RequiresKey() bool { return false }
 func (w *WHOISSource) IsPassive() bool   { return true }
 
 func (w *WHOISSource) Run(ctx context.Context, inputType module.InputType, value string) ([]result.Result, error) {
-	rdapBase, err := w.rdapServerFor(value)
+	rdapBase, err := w.rdapServerFor(ctx, value)
 	if err != nil {
 		return nil, err
 	}
@@ -126,9 +126,9 @@ func (w *WHOISSource) Run(ctx context.Context, inputType module.InputType, value
 }
 
 // rdapServerFor returns the RDAP base URL for the given domain's TLD.
-func (w *WHOISSource) rdapServerFor(domain string) (string, error) {
+func (w *WHOISSource) rdapServerFor(ctx context.Context, domain string) (string, error) {
 	w.once.Do(func() {
-		w.bootstrap, w.bootstrapErr = w.fetchBootstrap()
+		w.bootstrap, w.bootstrapErr = w.fetchBootstrap(ctx)
 	})
 	if w.bootstrapErr != nil {
 		return "", w.bootstrapErr
@@ -147,8 +147,12 @@ func (w *WHOISSource) rdapServerFor(domain string) (string, error) {
 	return base, nil
 }
 
-func (w *WHOISSource) fetchBootstrap() (map[string]string, error) {
-	resp, err := w.client.Get(w.bootstrapURL)
+func (w *WHOISSource) fetchBootstrap(ctx context.Context) (map[string]string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.bootstrapURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("whois: build bootstrap request: %w", err)
+	}
+	resp, err := w.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("whois: fetch bootstrap: %w", err)
 	}
