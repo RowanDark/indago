@@ -40,6 +40,7 @@ var (
 	flagModules  string
 	flagFormat   string
 	flagOutput   string
+	flagSort     string
 	flagNoPivot  bool
 	flagPassive  bool
 	flagDepth    int
@@ -87,6 +88,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&flagPassive, "passive", false, "Only query passive sources (no active probing)")
 	rootCmd.Flags().IntVar(&flagDepth, "pivot-depth", 0, "Override pivot depth (0 = use config)")
 	rootCmd.Flags().BoolVar(&flagNoColor, "no-color", false, "Disable ANSI colors")
+	rootCmd.Flags().StringVar(&flagSort, "sort", "module",
+		"Sort results by: module, type, confidence, timestamp")
 	rootCmd.Flags().DurationVar(&flagTimeout, "timeout", 60*time.Second,
 		"Maximum duration for the entire scan (e.g. 30s, 2m)")
 
@@ -176,8 +179,9 @@ func runScan(cmd *cobra.Command, args []string) error {
 
 	noColor := flagNoColor || os.Getenv("NO_COLOR") != ""
 	format := output.Format(flagFormat)
+	sortBy := result.SortBy(flagSort)
 
-	w := &output.StdoutWriter{Color: !noColor}
+	w := &output.StdoutWriter{Color: !noColor, SortBy: sortBy}
 	if err := w.Write(scanResult, os.Stdout); err != nil {
 		return fmt.Errorf("output error: %w", err)
 	}

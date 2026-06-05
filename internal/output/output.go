@@ -37,13 +37,13 @@ type Writer interface {
 func ForFormat(f Format) (Writer, error) {
 	switch f {
 	case FormatStdout, "":
-		return &StdoutWriter{Color: true}, nil
+		return &StdoutWriter{Color: true, SortBy: result.SortByModule}, nil
 	case FormatJSON:
-		return &JSONWriter{}, nil
+		return &JSONWriter{SortBy: result.SortByType}, nil
 	case FormatMarkdown:
-		return &MarkdownWriter{}, nil
+		return &MarkdownWriter{SortBy: result.SortByModule}, nil
 	case FormatCSV:
-		return &CSVWriter{}, nil
+		return &CSVWriter{SortBy: result.SortByTimestamp}, nil
 	default:
 		return nil, fmt.Errorf("unknown format %q — valid: stdout, json, markdown, csv", f)
 	}
@@ -101,10 +101,20 @@ func typeColor(t result.Type) string {
 
 // StdoutWriter produces colorized, human-readable terminal output.
 type StdoutWriter struct {
-	Color bool
+	Color  bool
+	SortBy result.SortBy
 }
 
 func (sw *StdoutWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
+	results := make([]result.Result, len(scan.Results))
+	copy(results, scan.Results)
+	results = result.DeduplicateByValue(results)
+	sortBy := sw.SortBy
+	if sortBy == "" {
+		sortBy = result.SortByModule
+	}
+	result.Sort(results, sortBy)
+
 	c := func(code, s string) string {
 		if sw.Color {
 			return code + s + colorReset
@@ -121,21 +131,21 @@ func (sw *StdoutWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 		c(colorDim, time.Now().UTC().Format(time.RFC3339)),
 	)
 
-	if len(scan.Results) == 0 {
+	if len(results) == 0 {
 		fmt.Fprintf(w, "%s\n\n", c(colorDim, "  no results found"))
 		return nil
 	}
 
 	// Group results by module for cleaner display.
 	byModule := make(map[string][]result.Result)
-	for _, r := range scan.Results {
+	for _, r := range results {
 		byModule[r.Module] = append(byModule[r.Module], r)
 	}
 
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	for mod, results := range byModule {
+	for mod, modResults := range byModule {
 		fmt.Fprintf(tw, "%s\n", c(colorBold, "  ["+strings.ToUpper(mod)+"]"))
-		for _, r := range results {
+		for _, r := range modResults {
 			confidence := ""
 			if r.Confidence != "" {
 				confidence = " " + c(colorDim, "("+string(r.Confidence)+")")
@@ -166,7 +176,7 @@ func (sw *StdoutWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 
 	fmt.Fprintf(w, "%s %d results across %d modules\n\n",
 		c(colorDim, "  total:"),
-		len(scan.Results),
+		len(results),
 		len(byModule),
 	)
 	return nil
@@ -177,13 +187,14 @@ func (sw *StdoutWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 // JSONWriter produces structured JSON output, suitable for piping to jq.
 type JSONWriter struct {
 	Pretty bool
+	SortBy result.SortBy
 }
 
 type jsonOutput struct {
-	Input   jsonInput         `json:"input"`
-	Results []result.Result   `json:"results"`
-	Errors  []jsonError       `json:"errors,omitempty"`
-	Meta    jsonMeta          `json:"meta"`
+	Input   jsonInput       `json:"input"`
+	Results []result.Result `json:"results"`
+	Errors  []jsonError     `json:"errors,omitempty"`
+	Meta    jsonMeta        `json:"meta"`
 }
 
 type jsonInput struct {
@@ -197,12 +208,21 @@ type jsonError struct {
 }
 
 type jsonMeta struct {
-	ScannedAt    time.Time `json:"scanned_at"`
-	ResultCount  int       `json:"result_count"`
-	ErrorCount   int       `json:"error_count"`
+	ScannedAt   time.Time `json:"scanned_at"`
+	ResultCount int       `json:"result_count"`
+	ErrorCount  int       `json:"error_count"`
 }
 
 func (jw *JSONWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
+	results := make([]result.Result, len(scan.Results))
+	copy(results, scan.Results)
+	results = result.Deduplicate(results)
+	sortBy := jw.SortBy
+	if sortBy == "" {
+		sortBy = result.SortByType
+	}
+	result.Sort(results, sortBy)
+
 	errs := make([]jsonError, len(scan.Errors))
 	for i, e := range scan.Errors {
 		errs[i] = jsonError{Source: e.Source, Message: e.Err.Error()}
@@ -210,11 +230,11 @@ func (jw *JSONWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 
 	out := jsonOutput{
 		Input:   jsonInput{Type: scan.Request.InputType, Value: scan.Request.Value},
-		Results: scan.Results,
+		Results: results,
 		Errors:  errs,
 		Meta: jsonMeta{
 			ScannedAt:   time.Now().UTC(),
-			ResultCount: len(scan.Results),
+			ResultCount: len(results),
 			ErrorCount:  len(scan.Errors),
 		},
 	}
@@ -229,28 +249,39 @@ func (jw *JSONWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 // ── MarkdownWriter ─────────────────────────────────────────────────────────
 
 // MarkdownWriter produces a readable Markdown report.
-type MarkdownWriter struct{}
+type MarkdownWriter struct {
+	SortBy result.SortBy
+}
 
 func (mw *MarkdownWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
+	results := make([]result.Result, len(scan.Results))
+	copy(results, scan.Results)
+	results = result.DeduplicateByValue(results)
+	sortBy := mw.SortBy
+	if sortBy == "" {
+		sortBy = result.SortByModule
+	}
+	result.Sort(results, sortBy)
+
 	fmt.Fprintf(w, "# indago Report\n\n")
 	fmt.Fprintf(w, "**Input:** `%s: %s`  \n", scan.Request.InputType, scan.Request.Value)
 	fmt.Fprintf(w, "**Generated:** %s  \n\n", time.Now().UTC().Format(time.RFC1123))
 
-	if len(scan.Results) == 0 {
+	if len(results) == 0 {
 		fmt.Fprintf(w, "_No results found._\n")
 		return nil
 	}
 
 	byModule := make(map[string][]result.Result)
-	for _, r := range scan.Results {
+	for _, r := range results {
 		byModule[r.Module] = append(byModule[r.Module], r)
 	}
 
-	for mod, results := range byModule {
+	for mod, modResults := range byModule {
 		fmt.Fprintf(w, "## %s\n\n", strings.ToUpper(mod))
 		fmt.Fprintf(w, "| Type | Value | Source | Confidence | Tags |\n")
 		fmt.Fprintf(w, "|------|-------|--------|------------|------|\n")
-		for _, r := range results {
+		for _, r := range modResults {
 			tags := strings.Join(r.Tags, ", ")
 			fmt.Fprintf(w, "| `%s` | `%s` | %s | %s | %s |\n",
 				r.Type, r.Value, r.Source, r.Confidence, tags)
@@ -266,16 +297,27 @@ func (mw *MarkdownWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 		fmt.Fprintln(w)
 	}
 
-	fmt.Fprintf(w, "---\n_Total: %d results_\n", len(scan.Results))
+	fmt.Fprintf(w, "---\n_Total: %d results_\n", len(results))
 	return nil
 }
 
 // ── CSVWriter ──────────────────────────────────────────────────────────────
 
 // CSVWriter produces a flat CSV suitable for spreadsheet triage.
-type CSVWriter struct{}
+type CSVWriter struct {
+	SortBy result.SortBy
+}
 
 func (cw *CSVWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
+	results := make([]result.Result, len(scan.Results))
+	copy(results, scan.Results)
+	results = result.Deduplicate(results)
+	sortBy := cw.SortBy
+	if sortBy == "" {
+		sortBy = result.SortByTimestamp
+	}
+	result.Sort(results, sortBy)
+
 	cwr := csv.NewWriter(w)
 	defer cwr.Flush()
 
@@ -286,7 +328,7 @@ func (cw *CSVWriter) Write(scan dispatcher.ScanResult, w io.Writer) error {
 		return err
 	}
 
-	for _, r := range scan.Results {
+	for _, r := range results {
 		if err := cwr.Write([]string{
 			string(r.Type),
 			r.Value,
